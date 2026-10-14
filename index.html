@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>일별 심사현황</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="top">
+    <h1>일별 심사현황</h1>
+    <p class="sub">심사자분배 건수 × 심사자 작업화면 상태이력 · <strong id="baseLabel"></strong> 종료 기준</p>
+  </header>
+
+  <main>
+    <form id="search" class="panel search" autocomplete="off">
+      <label>기준일
+        <input type="date" name="baseDate" required>
+      </label>
+      <label>기간(분배일자)
+        <span class="range"><input type="date" name="from" required> ~ <input type="date" name="to" required></span>
+      </label>
+      <label>채널
+        <select name="channel"><option value="">전체</option></select>
+      </label>
+      <label>영업채널
+        <select name="salesChannel"><option value="">전체</option></select>
+      </label>
+      <label>심사상태
+        <select name="status"><option value="">전체</option></select>
+      </label>
+      <label>지연기준(SLA)
+        <span class="range"><input type="number" name="slaDays" min="0" max="60" value="3"> 일 초과</span>
+      </label>
+      <label class="check"><input type="checkbox" name="delayedOnly"> 지연건만</label>
+      <div class="actions">
+        <button type="submit" class="primary">조회</button>
+        <button type="button" id="reset">초기화</button>
+        <button type="button" id="download" class="excel">엑셀 다운로드</button>
+      </div>
+    </form>
+
+    <section class="kpis" id="kpis" aria-label="핵심지표"></section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2>심사상태별 현황</h2>
+        <span class="hint">비율 = 조회기간·채널 조건의 전체 건수 대비 · 행을 클릭하면 해당 상태로 필터</span>
+      </div>
+      <div id="statusBar" class="stack" role="img"></div>
+      <table id="statusTable" class="grid"></table>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><h2>일별 현황</h2><span class="hint">각 일자 종료 시점</span></div>
+      <div class="scroll"><table id="dailyTable" class="grid"></table></div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><h2>심사자별 현황</h2></div>
+      <div class="scroll"><table id="reviewerTable" class="grid"></table></div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><h2>상세내역</h2><span class="hint" id="detailCount"></span></div>
+      <div class="scroll"><table id="detailTable" class="grid"></table></div>
+      <button type="button" id="more" class="more" hidden>더보기</button>
+    </section>
+  </main>
+
+  <script type="module" src="src/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+{
+  "name": "uw-daily-status",
+  "version": "1.0.0",
+  "description": "일별 심사현황 대시보드 (전날 기준)",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test test/*.test.js"
+  }
+}
