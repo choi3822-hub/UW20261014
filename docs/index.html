@@ -1,0 +1,252 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!-- index.html의 배포용 사본 (Artifact가 문서 골격을 붙여 줍니다) -->
+<title>청약·심사 진행현황</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@500;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="report.css">
+<header class="appbar">
+    <div class="ab-head">
+      <span class="ab-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6z M14 3v5h5 M9 13l2 2 4-4"/></svg></span>
+      <div class="ab-title">
+        <p class="ab-kicker">전날 마감 기준, 매일 아침 한 화면에</p>
+        <h1>청약·심사 <span>진행현황</span></h1>
+        <p class="sub">장기대기 · 심사자분배 · 모니터링방 자료를 합쳐<br>건별 현재 단계를 계산합니다</p>
+        <span class="ab-pill">매일 06:00 배치</span>
+      </div>
+    </div>
+    <nav class="tabs" role="tablist" aria-label="화면 선택">
+    <button class="tab on" role="tab" aria-selected="true" aria-controls="panel-dash" data-tab="dash" id="tab-dash">대시보드</button>
+    <button class="tab" role="tab" aria-selected="false" aria-controls="panel-brief" data-tab="brief" id="tab-brief">브리핑</button>
+    <button class="tab" role="tab" aria-selected="false" aria-controls="panel-report" data-tab="report" id="tab-report">보고서 미리보기</button>
+    <button class="tab" role="tab" aria-selected="false" aria-controls="panel-verify" data-tab="verify" id="tab-verify">검증</button>
+  </nav>
+    <span class="ab-sp"></span>
+    <div class="top-right">
+      <span class="asof" id="asof"></span>
+      <span class="download-note" id="download-note" role="status"></span>
+    </div>
+  </header>
+
+  <section class="filters" aria-label="조건 검색">
+    <div class="filter-row">
+      <label>청약일
+        <span class="range"><input type="date" id="f-from"> ~ <input type="date" id="f-to"></span>
+      </label>
+      <div class="presets" id="presets">
+        <button data-days="0" class="chip">전체</button>
+        <button data-days="1" class="chip">전일</button>
+        <button data-days="5" class="chip">최근 5영업일</button>
+        <button data-days="10" class="chip">최근 10영업일</button>
+      </div>
+    </div>
+    <div class="filter-row">
+      <label>채널 <select id="f-channel"></select></label>
+      <label>영업채널(지점) <select id="f-branch"></select></label>
+      <label>상품 <select id="f-product"></select></label>
+      <label>심사상태 <select id="f-status"></select></label>
+      <div class="filter-actions">
+        <span class="pending-note" id="pending-note" role="status" hidden>조건이 바뀌었습니다</span>
+        <button class="btn ghost" id="reset">초기화</button>
+        <button class="btn primary" id="search">조회</button>
+        <button class="btn report" id="report-open">보고서 다운</button>
+      </div>
+    </div>
+  </section>
+
+
+
+  <div id="panel-dash" role="tabpanel" aria-labelledby="tab-dash">
+  <section class="dx-kpis" id="dx-kpis" aria-label="핵심 숫자"></section>
+
+  <div class="dx-grid">
+    <section class="card dx-c8"><div class="card-head"><h2><span class="sec-no">01</span><span class="sec-emoji" aria-hidden="true">📋</span>청약 건수 구성</h2><p class="hint" id="dx-comp-hint"></p></div><div id="dx-comp"></div></section>
+    <section class="card dx-c4"><div class="card-head"><h2><span class="sec-no">02</span><span class="sec-emoji" aria-hidden="true">📌</span>오늘 챙길 것</h2><p class="hint" id="dx-risk-n"></p></div><div id="dx-risks"></div></section>
+  </div>
+
+  <section class="kpis" id="kpis" aria-label="운영 지표"></section>
+
+  <div class="sec-group-head"><h2><span class="sec-no">03</span><span class="sec-emoji" aria-hidden="true">🏢</span>채널별 현황</h2><p class="hint">처리 비율 막대 → 채널별 요약 · 단계별 진행중 건수</p></div>
+    <section class="card">
+    <div class="card-head">
+      <h2>청약 건수 대비 처리 현황</h2>
+      <p class="hint">막대 길이 = 청약 건수(전체 대비) · 막대 안 = 처리 비율</p>
+    </div>
+    <div class="mix-legend" id="mix-legend"></div>
+    <div class="mix" id="mix"></div>
+  </section>
+  <div class="dx-grid">
+    <section class="card dx-c5"><div class="card-head"><h2>채널별 요약</h2><p class="hint">청약 · 진행중 · 반송 · 성립률</p></div><div id="dx-chan"></div></section>
+  <section class="card dx-c7">
+      <div class="card-head">
+        <h2>채널별 진행중 건수</h2>
+        <p class="hint">진하게 표시될수록 건수가 많습니다</p>
+      </div>
+      <div class="table-wrap"><table class="heat" id="heat"></table></div>
+    </section>
+  </div>
+  <div class="sec-group-head"><h2><span class="sec-no">04</span><span class="sec-emoji" aria-hidden="true">🔍</span>심사 단계 현황</h2><p class="hint">단계별 건수 · 체류 · 기준 초과와 상태를 정하는 규칙</p></div>
+  <section class="card">
+    <div class="card-head">
+      <h2>심사 단계별 현황</h2>
+      <p class="hint">행을 누르면 해당 상태만 걸러 봅니다 · 단계 체류 = 기준시각 − 현재 상태 진입시각</p>
+    </div>
+    <div class="table-wrap">
+      <table class="stages" id="stages"></table>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-head">
+      <h2>상태 분류 규칙</h2>
+      <div class="list-head-right">
+        <p class="hint">원천 자료 4종을 어떤 순서로 확인해 건별 상태를 정하는지 · 건수는 지금 조회 조건 기준</p>
+        <button class="btn ghost list-toggle" id="rules-toggle" type="button" aria-expanded="false" aria-controls="rules-dash">펼치기 <span aria-hidden="true">▾</span></button>
+      </div>
+    </div>
+    <div id="rules-dash" hidden></div>
+  </section>
+
+  <div class="sec-group-head"><h2><span class="sec-no">05</span><span class="sec-emoji" aria-hidden="true">⏱️</span>처리 기간 · 기일</h2><p class="hint">심사 · 서류확인에 걸린 기간 (채널별 평균)</p></div>
+  <section class="card">
+    <div class="card-head">
+      <h2>채널별 심사기일 · 서류확인기일</h2>
+      <p class="hint">심사 = 스캔 → 심사의견 · 서류확인 = 심사의견 → 종결(보완 포함) · 구간이 끝난 건 평균</p>
+    </div>
+    <div class="chart-box"><canvas id="c-phase"></canvas></div>
+  </section>
+
+
+  <div class="sec-group-head"><h2><span class="sec-no">06</span><span class="sec-emoji" aria-hidden="true">📈</span>일별 추이</h2><p class="hint">하루 단위 청약 · 종결과 업무 마감 잔량</p></div>
+  <div class="grid2">
+    <section class="card">
+      <div class="card-head">
+        <h2>일별 청약 · 종결 건수</h2>
+        <p class="hint">종결 = 성립 + 반송</p>
+      </div>
+      <div class="chart-box"><canvas id="c-daily"></canvas></div>
+    </section>
+    <section class="card">
+      <div class="card-head">
+        <h2>일말 진행중 잔량</h2>
+        <p class="hint">그날 업무 마감 시점에 아직 끝나지 않은 건수</p>
+      </div>
+      <div class="chart-box"><canvas id="c-backlog"></canvas></div>
+    </section>
+  </div>
+
+  <section class="card">
+    <div class="card-head">
+      <h2><span class="sec-no">07</span><span class="sec-emoji" aria-hidden="true">🗂️</span>상세 목록 <span class="count" id="list-count"></span></h2>
+      <div class="list-head-right">
+        <p class="hint">심사기일이 급한 순서 · <i class="tone-key late"></i>초과 <i class="tone-key near"></i>임박 · ↻ 는 아직 진행 중인 구간 · 표에서 오른쪽 클릭해도 엑셀로 받을 수 있습니다</p>
+        <span class="download-note" id="list-note" role="status"></span>
+        <button class="btn ghost list-excel" id="list-excel" type="button">엑셀 다운</button>
+        <button class="btn ghost list-toggle" id="list-toggle" type="button" aria-expanded="false" aria-controls="list-body">펼치기 <span aria-hidden="true">▾</span></button>
+      </div>
+    </div>
+    <div id="list-body" hidden>
+      <div class="uw-chips" id="uw-chips" role="group" aria-label="심사자별 조회"></div>
+      <div class="table-wrap">
+        <table class="list" id="list"></table>
+      </div>
+      <div class="pager" id="pager"></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-head">
+      <h2><span class="sec-no">08</span><span class="sec-emoji" aria-hidden="true">🩺</span>데이터 점검</h2>
+      <p class="hint">신계약현황에는 있지만 처리결과가 없고, 다른 화면 어디에도 없는 건</p>
+    </div>
+    <div id="check"></div>
+  </section>
+
+  </div>
+
+  <div id="panel-brief" role="tabpanel" aria-labelledby="tab-brief" hidden>
+    <section class="cx-verdict" id="cx-verdict" aria-label="오늘 상태"></section>
+    <section class="cx-bigs" id="cx-big" aria-label="핵심 숫자"></section>
+    <div class="cx-two">
+      <section class="card"><div class="card-head"><h2>주의할 것</h2><p class="hint">무엇이 · 영향 · 조치</p></div><div id="cx-risks"></div></section>
+      <div class="cx-side">
+        <section class="card"><div class="card-head"><h2>자동 성립률</h2><p class="hint">심사 인력 효율</p></div><div id="cx-stp"></div></section>
+        <section class="card"><div class="card-head"><h2>업무 잔량 추세</h2><p class="hint">영업일 마감 기준</p></div><div id="cx-trend"></div></section>
+      </div>
+    </div>
+    <section class="cx-good" id="cx-good" aria-label="잘 되고 있는 것"></section>
+    <section class="card cx-more-bar">
+      <p><b>부서장 상세 보기</b> · 전일 대비, 보험료, 단계별 처리율, 심사자별 업무량, 자동심사율, 성립 기간, 상품별 보완율, 조치 대상 목록</p>
+      <button class="btn ghost list-toggle" id="cx-more" type="button" aria-expanded="false" aria-controls="bf-detail">펼치기 <span aria-hidden="true">▾</span></button>
+    </section>
+    <div id="bf-detail" hidden>
+    <div class="grid2">
+      <section class="card"><div class="card-head"><h2>전일 대비 증감</h2><p class="hint">신규 청약 · 성립 처리 · 업무 마감 잔량</p></div><div id="bf-delta"></div></section>
+      <section class="card"><div class="card-head"><h2>진행중 보험료 규모</h2><p class="hint">아직 성립되지 않은 건의 월보험료</p></div><div id="bf-premium"></div></section>
+    </div>
+    <div class="grid2">
+      <section class="card"><div class="card-head"><h2>단계별 기준 내 처리율</h2><p class="hint">끝난 구간 중 허용일 안에 넘어간 비율</p></div><div id="bf-sla"></div></section>
+      <section class="card"><div class="card-head"><h2>심사자별 업무량</h2><p class="hint">지금 들고 있는 진행중 건</p></div><div id="bf-uw"></div></section>
+    </div>
+    <div class="grid2">
+      <section class="card"><div class="card-head"><h2>자동심사(무심사 성립)율</h2><p class="hint">심사 인력 효율</p></div><div id="bf-stp"></div></section>
+      <section class="card"><div class="card-head"><h2>성립까지 걸린 기간 분포</h2><p class="hint">중앙값과 늦은 10%</p></div><div id="bf-lead"></div></section>
+    </div>
+    <section class="card"><div class="card-head"><h2>채널 · 상품별 보완율 · 반송률</h2><p class="hint">영업 쪽 청약 품질</p></div><div id="bf-quality"></div></section>
+    <section class="card"><div class="card-head"><h2>조치 필요 건</h2><p class="hint">사유를 누르면 해당 건과 담당이 보입니다 · 경과가 긴 순서</p></div><div id="bf-actions"></div></section>
+    </div>
+  </div>
+
+  <div id="panel-report" role="tabpanel" aria-labelledby="tab-report" hidden>
+    <section class="card report-bar">
+      <div>
+        <div class="kind-toggle" role="group" aria-label="보고서 종류">
+          <button type="button" class="kind on" data-kind="dash" aria-pressed="true">1. 대시보드 보고서</button>
+          <button type="button" class="kind" data-kind="brief" aria-pressed="false">2. 브리핑 보고서</button>
+        </div>
+        <h2>보고서 미리보기</h2>
+        <p class="hint">지금 조회한 조건으로 만든 A4 한 장입니다. 확인 후 저장하세요 · 인쇄는 받은 PDF를 열어서 하면 됩니다</p>
+      </div>
+      <div class="report-actions">
+        <span class="download-note" id="report-note" role="status"></span>
+        <button class="btn ghost" id="report-docx">Word 다운</button>
+        <button class="btn primary" id="report-pdf">PDF 다운</button>
+      </div>
+    </section>
+    <div class="paper-wrap"><article class="sheet" id="report-sheet"></article></div>
+  </div>
+
+  <div id="panel-verify" role="tabpanel" aria-labelledby="tab-verify" hidden>
+    <section class="card vf-intro">
+      <h2>PRD 요구사항 검증</h2>
+      <p class="hint">요구사항마다 화면 위치와 확인 결과를 보여 줍니다 · 기대값은 원천 자료에서 따로 계산하고, 실제값은 대시보드가 화면에 표시한 값을 읽어 비교합니다</p>
+      <p class="vf-cond" id="vf-cond"></p>
+    </section>
+    <section class="card"><div class="card-head"><h2>1. PRD 대응표</h2><p class="hint">요구사항 → 화면 위치 → 지금 값</p></div><div id="vf-prd"></div></section>
+    <section class="card"><div class="card-head"><h2>2. 데이터 구성</h2><p class="hint">PRD에 정한 가상데이터 기준과 실제 자료 비교 · 전체 5,000건 기준</p></div><div id="vf-data"></div></section>
+    <section class="card"><div class="card-head"><h2>3. 상태 분류 규칙</h2><p class="hint">대시보드 탭의 같은 표 · 지금 조회 조건 기준</p></div><div id="vf-rules"></div></section>
+    <section class="card"><div class="card-head"><h2>4. 필터 시험</h2><button class="btn primary" id="vf-run-filter" type="button">필터 시험 실행</button></div>
+      <div id="vf-filter"><p class="hint">버튼을 누르면 기간 · 채널 · 영업채널 · 심사상태 필터를 차례로 실제 적용해 보고, 끝나면 원래 조건으로 되돌립니다</p></div></section>
+    <section class="card"><div class="card-head"><h2>5. 엑셀 확인</h2><button class="btn primary" id="vf-run-excel" type="button">엑셀 내용 확인</button></div>
+      <div id="vf-excel"><p class="hint">버튼을 누르면 지금 조건의 엑셀 파일을 실제로 만들고 다시 읽어 시트 · 행 수 · 검색조건을 확인합니다 (내려받지는 않음)</p></div></section>
+  </div>
+
+  <div class="ctx-menu" id="list-menu" role="menu" hidden>
+    <button type="button" role="menuitem" data-menu="excel">엑셀 다운 <small>현재 조건 전체 목록</small></button>
+  </div>
+
+  <footer class="foot">
+    가상 데이터입니다 · 상태 판정 순서: 신계약현황 처리결과 → 심사자분배현황 → 모니터링방 → 장기대기현황 → 없으면 확인필요
+  </footer>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="data.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="dashboard.js"></script>
+  <script src="report.js"></script>
+  <script src="briefing.js"></script>
+  <script src="verify.js"></script>
+
+</body></html>

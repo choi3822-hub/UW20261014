@@ -1,0 +1,6 @@
+{
+  "name": "uw20261014-chatbot",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=20" }
+}
